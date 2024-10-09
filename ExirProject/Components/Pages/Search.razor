@@ -1,0 +1,22 @@
+﻿@inject IPersonService PersonService
+
+<div class="d-flex justify-content-center align-items-center">
+    <InputText class="search-area" @bind-Value="searchTerm" />
+    <button class="search-btn" @onclick="HandleSearchTerm">Search</button>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<List<Person>> OnSearchResult { get; set; }
+
+    private string searchTerm = string.Empty;
+
+    private List<Person>? Persons { get; set; }
+
+    public async Task HandleSearchTerm()
+    {
+        Persons = await PersonService.SearchPersonAsync(searchTerm);
+        await OnSearchResult.InvokeAsync(Persons);
+    }
+
+}

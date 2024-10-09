@@ -1,0 +1,143 @@
+﻿@page "/editperson"
+@page "/editperson/{Id:int}"
+@rendermode InteractiveServer
+
+@inject IPersonService PersonService
+@inject NavigationManager navigationManager
+@inject IMapper Mapper
+
+
+<PageTitle>@title</PageTitle>
+<h3>@title</h3>
+
+<div class="row">
+    <div class="col-md-8">
+        <EditForm Model="@personDetail" FormName="editPerson" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+            <div class="form-group">
+                <label for="firstName">First Name </label>
+                <InputText class="form-control" @bind-Value="personDetail.FirstName" id="firstName" />
+                <ValidationMessage For="() => personDetail.FirstName" />
+            </div>
+
+            <div class="form-group">
+                <label for="lastName">Last Name </label>
+                <InputText class="form-control" @bind-Value="personDetail.LastName" id="lastName" />
+                <ValidationMessage For="() => personDetail.LastName" />
+            </div>
+            <div class="form-group">
+                <label for="nationalCode">National Code </label>
+                <InputText @onblur="CheckNationalCode" class="form-control" @bind-Value="personDetail.NationalCode" id="nationalCode" />
+                @if (codeExists)
+                {
+                    <div class="validation-message">
+                       National Code already exists
+                    </div>
+                }
+                <ValidationMessage For="() => personDetail.NationalCode" />
+            </div>
+            <div class="form-group">
+                <label for="email">Email </label>
+                <InputText class="form-control" @bind-Value="personDetail.Email" id="email" />
+                <ValidationMessage For="() => personDetail.Email" />
+            </div>
+            <div class="form-group">
+                <label for="status">Last Status </label>
+                <InputSelect class="form-control" @bind-Value="personDetail.Status">
+                    @foreach(var status in Enum.GetValues(typeof(LastStatus)))
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => personDetail.Status" />
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone </label>
+                <InputText class="form-control" @bind-Value="personDetail.Phone" id="phone" />
+                <ValidationMessage For="() => personDetail.Phone" />
+            </div>
+            @if(Id == null)
+            {
+                <button class="btn btn-primary mt-3" type="submit">Submit</button>
+            }
+            else
+            {
+                <button class="btn btn-primary mt-3" type="submit">Update</button>
+            }
+        </EditForm>
+            @if(Id != null)
+            {
+                <button class="btn btn-danger mt-3" @onclick="DeletePerson">Delete</button>
+            }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private PersonDetail personDetail { get; set; } = new PersonDetail();
+
+    private string title = string.Empty;
+
+    private bool codeExists = false;
+
+    private async Task CheckNationalCode()
+    {
+        if(personDetail.NationalCode != null)
+        {
+            codeExists = await PersonService.ExistsByNationalCode(personDetail.NationalCode);
+        } else
+        {
+            codeExists = false;
+        }
+    }
+
+    private async Task DeletePerson()
+    {
+        ArgumentNullException.ThrowIfNull(Id);
+        var person = await PersonService.GetByIdAsync((int)Id);
+        ArgumentNullException.ThrowIfNull(person);
+        await PersonService.DeleteAsync(person);
+        navigationManager.NavigateTo("/");
+    }
+
+
+    private async Task HandleSubmit()
+    {
+        if (codeExists == false)
+        {
+            if (Id == null)
+            {
+                var person = Mapper.Map<Person>(personDetail);
+                await PersonService.AddAsync(person);
+            }
+            else
+            {
+                var person = await PersonService.GetByIdAsync((int)Id);
+                ArgumentNullException.ThrowIfNull(person);
+                Mapper.Map(personDetail, person);
+                await PersonService.UpdateAsync(person);
+            }
+            navigationManager.NavigateTo("/");
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+        if (Id == null)
+        {
+            personDetail = new PersonDetail();
+            title = "Adding Person";
+        }
+        else
+        {
+            title = "Editing Person";
+            var person = await PersonService.GetByIdAsync((int)Id);
+            ArgumentNullException.ThrowIfNull(person);
+            Mapper.Map(person, personDetail);
+        }
+    }
+}
