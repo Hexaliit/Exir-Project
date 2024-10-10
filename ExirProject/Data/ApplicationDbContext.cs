@@ -9,6 +9,5 @@ namespace ExirProject.Data
         {
         }
         public DbSet<Person> Persons { get; set; }
-        public DbSet<Profile> Profiles { get; set; }
     }
 }
